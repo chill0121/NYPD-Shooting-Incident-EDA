@@ -16,6 +16,7 @@ This ensures we will capture updates to the data as they come in whenever we run
 
 ```{r Setup RMD}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width = 12, fig.height = 8) 
 
 library(tidyverse)
 library(ggmap)
@@ -34,7 +35,7 @@ str(import_URL)
 ## Use GGMAP to Visualize Locations
 Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset,
 and superimposing them over a background image of the area. We can use the minimum and maximum values 
-of each coordinate to find our map's bounding box then use 'ggmap()' to do the heavy lifting.
+of each coordinate to find our map's bounding box then use `ggmap()` to do the heavy lifting.
 ```{r Map Visualization}
 # Initialize the bounding box that will contain the map coordinates.
 map_bounds <- c(left = min(import_URL$Longitude), 
@@ -47,9 +48,9 @@ incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom 
         geom_point(data = import_URL, 
                 aes(x = Longitude, y = Latitude),
                 color = 'darkred', 
-                size = 0.4, 
+                size = 0.25, 
                 alpha = 0.2) +
-        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021 \nSource:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
+        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
         labs(x = 'Longitude', y = 'Latitude')
 incident_map_point
 
@@ -59,14 +60,14 @@ incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoo
                 aes(x = Longitude, y = Latitude, fill = after_stat(level)), 
                 bins = 20, 
                 geom = 'polygon', 
-                alpha = 0.7) +
+                alpha = 0.8) +
         geom_density_2d(data = import_URL, 
                 aes(x = Longitude, y = Latitude), 
                 bins = 20, 
                 alpha = 0.2, 
                 color = "white") +
-        guides(fill = guide_legend(title = "Density Bins")) + 
-        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021 \nSource:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
+        guides(fill = guide_legend(title = "Density")) + 
+        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
         labs(x = 'Longitude', y = 'Latitude')
 incident_map_density
 ```
