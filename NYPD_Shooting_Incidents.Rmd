@@ -32,10 +32,11 @@ dim(import_URL)
 str(import_URL)
 ```
 
-## Use GGMAP to Visualize Locations
-Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset,
-and superimposing them over a background image of the area. We can use the minimum and maximum values 
-of each coordinate to find our map's bounding box then use `ggmap()` to do the heavy lifting.
+## Utilize Coordinate Data to Visualize Superimposed Data on Map
+Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset. 
+First, we can use the minimum and maximum values of each coordinate to find the map's bounding box 
+then use `ggmap()` to generate a map centered around these coordinates. Then, we can use `geom_point()` and `stat_density2d_filled()` to
+superimpose our data on that same coordinate system.
 ```{r Map Visualization}
 # Initialize the bounding box that will contain the map coordinates.
 map_bounds <- c(left = min(import_URL$Longitude), 
@@ -43,7 +44,7 @@ map_bounds <- c(left = min(import_URL$Longitude),
         right = max(import_URL$Longitude), 
         top = max(import_URL$Latitude))
 
-# Plot of incident coordinates
+# Initialize the scatter plot of the incident coordinates
 incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
         geom_point(data = import_URL, 
                 aes(x = Longitude, y = Latitude),
@@ -52,9 +53,10 @@ incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom 
                 alpha = 0.2) +
         ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
         labs(x = 'Longitude', y = 'Latitude')
+# Display Point Map
 incident_map_point
 
-# Density Map to better visualize density of points.
+# Initialize density map to better visualize regions with frequent incidents.
 incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
         stat_density2d_filled(data = import_URL, contour_var = 'density',
                 aes(x = Longitude, y = Latitude, fill = after_stat(level)), 
@@ -69,5 +71,6 @@ incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoo
         guides(fill = guide_legend(title = "Density")) + 
         ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
         labs(x = 'Longitude', y = 'Latitude')
+# Display Density Map
 incident_map_density
 ```
