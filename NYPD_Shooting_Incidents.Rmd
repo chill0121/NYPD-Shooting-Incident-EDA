@@ -1,0 +1,25 @@
+---
+title: "NYPD Shooting Incident Data"
+author: "Cody Hill"
+date: "2023-04-04"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Setup 
+
+We will first begin by loading in the packages we intend to use. 
+
+Then, importing the data using a URL directly from the source. 
+This ensures we will capture updates to the data as they come in whenever we run this again.
+
+```{r Setup RMD}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggmap)
+library(ggplot2)
+
+import_URL <- read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
+```
