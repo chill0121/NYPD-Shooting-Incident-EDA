@@ -36,21 +36,37 @@ Here we're going to visualize the location of each shooting incident using the c
 and superimposing them over a background image of the area. We can use the minimum and maximum values 
 of each coordinate to find our map's bounding box then use 'ggmap()' to do the heavy lifting.
 ```{r Map Visualization}
+# Initialize the bounding box that will contain the map coordinates.
 map_bounds <- c(left = min(import_URL$Longitude), 
         bottom = min(import_URL$Latitude),
         right = max(import_URL$Longitude), 
         top = max(import_URL$Latitude))
 
+# Plot of incident coordinates
 incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
         geom_point(data = import_URL, 
                 aes(x = Longitude, y = Latitude),
-                color = 'darkred', size = 0.4, alpha = 0.2); incident_map_point
+                color = 'darkred', 
+                size = 0.4, 
+                alpha = 0.2) +
+        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021 \nSource:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
+        labs(x = 'Longitude', y = 'Latitude')
+incident_map_point
 
+# Density Map to better visualize density of points.
 incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
         stat_density2d_filled(data = import_URL, contour_var = 'density',
                 aes(x = Longitude, y = Latitude, fill = after_stat(level)), 
-                bins = 20, geom = 'polygon', alpha = 0.7) +
-                geom_density_2d(data = import_URL, 
+                bins = 20, 
+                geom = 'polygon', 
+                alpha = 0.7) +
+        geom_density_2d(data = import_URL, 
                 aes(x = Longitude, y = Latitude), 
-                bins = 20, alpha = 0.2, color = "white"); incident_map_density
+                bins = 20, 
+                alpha = 0.2, 
+                color = "white") +
+        guides(fill = guide_legend(title = "Density Bins")) + 
+        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021 \nSource:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
+        labs(x = 'Longitude', y = 'Latitude')
+incident_map_density
 ```
