@@ -23,3 +23,10 @@ library(ggplot2)
 
 import_URL <- read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
 ```
+
+## Exploratory Data Analysis (EDA)
+Let's take a look at the dimension of this imported data.frame as well as the variable types of each column.
+```{r EDA}
+dim(import_URL)
+str(import_URL)
+```
