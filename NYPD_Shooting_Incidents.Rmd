@@ -19,18 +19,42 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(fig.width = 12, fig.height = 8) 
 
 library(tidyverse)
+library(lubridate)
 library(ggmap)
 library(ggplot2)
 
-import_URL <- read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
+import_url <- read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
 ```
 
 ## Exploratory Data Analysis (EDA)
-Let's take a look at the dimension of this imported data.frame as well as the variable types of each column.
+Let's take a look at the dimension of this imported data.frame as well as the variable types of each column and summary.
 ```{r EDA}
-dim(import_URL)
-str(import_URL)
+dim(import_url)
+str(import_url)
+summary(import_url)
 ```
+
+Looks like we have 19 columns (features) and 25596 rows (datapoints).  
+First, let's remove any features that we won't be needing for our analysis. 
+- `JURISDICTION_CODE` is pretty broad for localizing shooting incidents so we will end up using `BORO` instead which will give more insight to our analysis.
+- `X_COORD_CD`, `Y_COORD_CD`, and `Lon_Lat` are all redundant.
+Also, let's rename a few of these for more readability.
+```{r Feature Removal and Renaming}
+import_url <- select(import_url, -JURISDICTION_CODE, -X_COORD_CD, -Y_COORD_CD, -Lon_Lat)
+import_url <- import_url %>%
+        rename(c('DATE' = 'OCCUR_DATE', 'TIME' = 'OCCUR_TIME','BOROUGH' = 'BORO', 
+                'LOCATION' = 'LOCATION_DESC', 'MURDER_FLAG' = 'STATISTICAL_MURDER_FLAG', 
+                'VICTIM_AGE' = 'VIC_AGE_GROUP', 'VICTIM_SEX' = 'VIC_SEX', 'VICTIM_RACE' = 'VIC_RACE',
+                'LATITUDE' = 'Latitude', 'LONGITUDE' = 'Longitude'))
+import_url(head)
+```
+Next, we will check if there are any missing values or duplicated, focusing only on the `INCIDENT_KEY` feature for now.
+This feature will be the most important for identifying any duplicate entries as they should all be unique.
+```{r NA or Null and Duplicates}
+```
+
+For better analysis that will be upcoming we should change the class type
+of a few of these features
 
 ## Utilize Coordinate Data to Visualize Superimposed Data on Map
 Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset. 
@@ -39,38 +63,40 @@ then use `ggmap()` to generate a map centered around these coordinates. Then, we
 superimpose our data on that same coordinate system.
 ```{r Map Visualization}
 # Initialize the bounding box that will contain the map coordinates.
-map_bounds <- c(left = min(import_URL$Longitude), 
-        bottom = min(import_URL$Latitude),
-        right = max(import_URL$Longitude), 
-        top = max(import_URL$Latitude))
+map_bounds <- c(left = min(import_url$LONGITUDE), 
+        bottom = min(import_url$LATITUDE),
+        right = max(import_url$LONGITUDE), 
+        top = max(import_url$LATITUDE))
 
 # Initialize the scatter plot of the incident coordinates
+# Note, there are better maps out there but most require a private google API key,
+# which wouldn't work for this public project.
 incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
-        geom_point(data = import_URL, 
-                aes(x = Longitude, y = Latitude),
+        geom_point(data = import_url, 
+                aes(x = LONGITUDE, y = LATITUDE),
                 color = 'darkred', 
                 size = 0.25, 
                 alpha = 0.2) +
         ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
-        labs(x = 'Longitude', y = 'Latitude')
+        labs(x = 'LONGITUDE', y = 'LATITUDE')
 # Display Point Map
 incident_map_point
 
 # Initialize density map to better visualize regions with frequent incidents.
 incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
-        stat_density2d_filled(data = import_URL, contour_var = 'density',
-                aes(x = Longitude, y = Latitude, fill = after_stat(level)), 
+        stat_density2d_filled(data = import_url, contour_var = 'density',
+                aes(x = LONGITUDE, y = LATITUDE, fill = after_stat(level)), 
                 bins = 20, 
                 geom = 'polygon', 
                 alpha = 0.8) +
-        geom_density_2d(data = import_URL, 
-                aes(x = Longitude, y = Latitude), 
+        geom_density_2d(data = import_url, 
+                aes(x = LONGITUDE, y = LATITUDE), 
                 bins = 20, 
                 alpha = 0.2, 
                 color = "white") +
         guides(fill = guide_legend(title = "Density")) + 
         ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
-        labs(x = 'Longitude', y = 'Latitude')
+        labs(x = 'LONGITUDE', y = 'LATITUDE')
 # Display Density Map
 incident_map_density
 ```
