@@ -7,12 +7,12 @@ output:
   html_document: default
 ---
 
-## Setup 
+## Setup
+========
 
 We will first begin by loading in the packages we intend to use. 
 
-Then, importing the data using a URL directly from the source. 
-This ensures we will capture updates to the data as they come in whenever we run this again.
+Then, importing the data using a URL directly from the source, ensures we will capture updates to the data as they come in, whenever this is run again.
 
 ```{r Setup RMD}
 knitr::opts_chunk$set(echo = TRUE)
@@ -26,18 +26,22 @@ library(ggplot2)
 import_url <- read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
 ```
 
-## Exploratory Data Analysis (EDA)
-Let's take a look at the dimension of this imported data.frame as well as the variable types of each column and summary.
+## Transformation and Exploratory Data Analysis (EDA)
+=====================================================
+Let's take a look at the dimensions of this imported data.frame as well as the variable types of each column and summary.
 ```{r EDA}
 dim(import_url)
 str(import_url)
 summary(import_url)
 ```
 
-Looks like we have 19 columns (features) and 25596 rows (datapoints).  
-First, let's remove any features that we won't be needing for our analysis. 
-- `JURISDICTION_CODE` is pretty broad for localizing shooting incidents so we will end up using `BORO` instead which will give more insight to our analysis.
-- `X_COORD_CD`, `Y_COORD_CD`, and `Lon_Lat` are all redundant.
+### Feature Removal and Renaming
+Looks like we have 19 columns **(features)** and 25596 rows **(data points)**.  
+First, let's remove any features that we won't be needing for our analysis.
+
+1. `JURISDICTION_CODE` is pretty broad for localizing shooting incidents so we will end up using `BORO` instead which will give more insight to our analysis.
+2. `X_COORD_CD`, `Y_COORD_CD`, and `Lon_Lat` are all redundant.
+
 Also, let's rename a few of these for more readability.
 ```{r Feature Removal and Renaming}
 import_url <- select(import_url, -JURISDICTION_CODE, -X_COORD_CD, -Y_COORD_CD, -Lon_Lat)
@@ -46,21 +50,42 @@ import_url <- import_url %>%
                 'LOCATION' = 'LOCATION_DESC', 'MURDER_FLAG' = 'STATISTICAL_MURDER_FLAG', 
                 'VICTIM_AGE' = 'VIC_AGE_GROUP', 'VICTIM_SEX' = 'VIC_SEX', 'VICTIM_RACE' = 'VIC_RACE',
                 'LATITUDE' = 'Latitude', 'LONGITUDE' = 'Longitude'))
-import_url(head)
+head(import_url)
 ```
-Next, we will check if there are any missing values or duplicated, focusing only on the `INCIDENT_KEY` feature for now.
+
+### Check for Duplicates and Remove
+Next, we will check if there are any missing or duplicated data points, focusing only on the `INCIDENT_KEY` feature for now.
 This feature will be the most important for identifying any duplicate entries as they should all be unique.
 ```{r NA or Null and Duplicates}
+# Check for any NA or Null values
+any(is.na(import_url$INCIDENT_KEY)) | any(is.null(import_url$INCIDENT_KEY))
+# Check for duplicates
+length(unique(import_url$INCIDENT_KEY))
+length(import_url$INCIDENT_KEY)
+```
+Subtracting the results here shows that there are 5470 duplicate data points. 
+Let's take a look to make sure these aren't false positives.
+```{r Removal Duplicates}
+# Sort duplicates to see what they look like, but does not change dataframe
+head(filter(import_url, duplicated(import_url$INCIDENT_KEY)))
+# Check a few entries
+import_url %>% filter(INCIDENT_KEY == 227647476)
+import_url %>% filter(INCIDENT_KEY == 232390408)
+# Remove duplicates
+import_url <- filter(import_url, !duplicated(import_url$INCIDENT_KEY))
+# Check work
+sum(duplicated(import_url$INCIDENT_KEY))
 ```
 
-For better analysis that will be upcoming we should change the class type
-of a few of these features
+### Change Feature Class Types
+For better analysis we should change the class type of a few of these features to make them easier to work with.
 
-## Utilize Coordinate Data to Visualize Superimposed Data on Map
+## Incident Coordinate Data Visualized on a Map
+===============================================
 Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset. 
-First, we can use the minimum and maximum values of each coordinate to find the map's bounding box 
-then use `ggmap()` to generate a map centered around these coordinates. Then, we can use `geom_point()` and `stat_density2d_filled()` to
-superimpose our data on that same coordinate system.
+First, we can use the minimum and maximum values of the longitudes and latitudes to find the map's bounding box (edges).
+Then, use `ggmap()` to generate a map centered around these coordinates. Then, we can use `geom_point()` and `stat_density2d_filled()` to
+superimpose our data on the map using the same coordinate system we generated.
 ```{r Map Visualization}
 # Initialize the bounding box that will contain the map coordinates.
 map_bounds <- c(left = min(import_url$LONGITUDE), 
