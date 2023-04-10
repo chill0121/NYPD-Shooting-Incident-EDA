@@ -47,8 +47,8 @@ import_url <- select(import_url, -JURISDICTION_CODE, -X_COORD_CD, -Y_COORD_CD, -
 import_url <- import_url %>%
         rename(c('DATE' = 'OCCUR_DATE', 'TIME' = 'OCCUR_TIME','BOROUGH' = 'BORO', 
                 'LOCATION' = 'LOCATION_DESC', 'MURDER_FLAG' = 'STATISTICAL_MURDER_FLAG', 
-                'VICTIM_AGE' = 'VIC_AGE_GROUP', 'VICTIM_SEX' = 'VIC_SEX', 'VICTIM_RACE' = 'VIC_RACE',
-                'LATITUDE' = 'Latitude', 'LONGITUDE' = 'Longitude'))
+                'PERP_AGE' = 'PERP_AGE_GROUP', 'VICTIM_AGE' = 'VIC_AGE_GROUP', 'VICTIM_SEX' = 'VIC_SEX',
+                'VICTIM_RACE' = 'VIC_RACE', 'LATITUDE' = 'Latitude', 'LONGITUDE' = 'Longitude'))
 head(import_url)
 ```
 
@@ -89,7 +89,7 @@ str(import_url)
 ```
 
 ### More Feature Checks
-We will continue to look at the features and see if any of these blank entries will cause trouble during the analysis. 
+We will continue to look at the features and see if any of these blank entries will cause trouble during the analysis.
 Also, we'll look to see if there are any duplicate categorical factors in the rest of the features.
 ```{r More transformations}
 # Create a table of each column to check factor levels
@@ -97,6 +97,59 @@ for(i in 1:length(import_url)){
     ifelse(is.factor(import_url[ ,i]), print(table(import_url[ ,i, drop = FALSE])), next)
 }
 ```
+Looks like there are quite a few blanks and entries labeled as "unknown" some features have both. 
+We'll combine these by labeling all blanks as unknown. This data likely comes from officers on the scene and either
+missed some information or, in the case of the perp, might not have had a witness or not caught the offender. 
+
+- Over 50% of the `LOCATION` and `PERP_AGE` data is unknown.
+- `BOROUGH`, `MURDER_FLAG`, `PRECINCT`, `DATE`, `TIME`, `LONGITUDE`, and `LATITUDE` have no missing entries.
+- The remaining features are missing a few, but is not a significant amount compared to the size of the dataset.
+
+It's reasonable to leave these missing data points in because it isn't vital to the kind of analysis we will be doing, 
+considering the data that is complete holds more relevance, removing it would be like throwing away the baby with the bathwater 
+(e.g. removing a data point that is missing the `LOCATION` description, but isn't missing the rest of the information will 
+only hurt our analysis. Especially considering `BOROUGH`,`LONGITUDE`, and`LATITUDE` aren't missing.)
+
+Here we will combine and correct any missing entries with the methods discussed above.
+```{r Dealing with the Unknown}
+for(i in 1:length(import_url)){
+    # If the column is a factor AND/OR contains empty space or 'U'
+    if(is.factor(import_url[ ,i]) && '' %in% import_url[ ,i] || 'U' %in% import_url[ ,i]){
+        # Add level named UNKNOWN
+        levels(import_url[, i]) <- c(levels(import_url[, i]), 'UNKNOWN')
+        # Replace missing values and Us with UNKNWON
+        import_url[, i][import_url[, i] == ''] <- as.factor('UNKNOWN')
+        import_url[, i][import_url[, i] == 'U'] <- as.factor('UNKNOWN')
+        # Remove unused levels
+        import_url[, i] <- droplevels(import_url[, i])
+    }else{
+        next
+    }
+}
+```
+Lastly there are a few values in `PERP_AGE` that look like data entry typos. 
+Instead of assuming what they intended we will change these to 'UNKNOWN'.
+```{r PERP_AGE Anomalies}
+# Before changes
+table(import_url$PERP_AGE)
+# Set values we want to keep as levels
+age_levels <- c('<18', '18-24', '25-44', '45-64', '65+', 'UNKNOWN')
+# Find all values NOT in age_levels (notice the !)
+import_url$PERP_AGE[!import_url$PERP_AGE %in% age_levels] <- as.factor('UNKNOWN')
+# Remove unused levels
+import_url$PERP_AGE <- droplevels(import_url$PERP_AGE)
+# After changes
+table(import_url$PERP_AGE)
+```
+
+### EDA Cont.
+[Summarize some of the data]
+
+## Visualizations
+
+Now that the transformations are complete, let's start plotting these features against eachother and visualizing our data 
+so we can try to make some conclusions.
+
 ## Incident Coordinate Data Visualized on a Map
 
 Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset. 
