@@ -156,7 +156,7 @@ so we can try to make some conclusions.
 import_url$BOROUGH <- fct_infreq(import_url$BOROUGH)
 # Plot graph
 import_url %>%
-   ggplot(., aes(x = reorder(BOROUGH, BOROUGH, length, decreasing = TRUE), fill = BOROUGH)) + geom_bar(aes(y = (..count..))) +
+   ggplot(., aes(x = reorder(BOROUGH, BOROUGH, length, decreasing = TRUE), fill = BOROUGH)) + geom_bar(aes(y = after_stat(count))) +
    scale_fill_brewer(palette = 'YlOrRd', direction = -1) + 
    xlab('Borough') +
    ylab('Number of Incidents') +
@@ -166,7 +166,7 @@ import_url %>%
 ```{r Visualizations - Incidents per Location}
 import_url %>%
    ggplot(., aes(x = reorder(LOCATION, LOCATION, length, decreasing = TRUE), fill = LOCATION)) + 
-   geom_bar(aes(y = (..count..)), show.legend = FALSE) +
+   geom_bar(aes(y = after_stat(count)), show.legend = FALSE) +
    theme(axis.text.x = element_text(angle = 90, vjust = 0.05)) + 
    scale_y_log10() +
    xlab('Location Description') +
