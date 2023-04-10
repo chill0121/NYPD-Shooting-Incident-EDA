@@ -157,21 +157,21 @@ import_url$BOROUGH <- fct_infreq(import_url$BOROUGH)
 # Plot graph
 import_url %>%
    ggplot(., aes(x = reorder(BOROUGH, BOROUGH, length, decreasing = TRUE), fill = BOROUGH)) + geom_bar(aes(y = after_stat(count))) +
-   scale_fill_brewer(palette = 'YlOrRd', direction = -1) + 
-   xlab('Borough') +
-   ylab('Number of Incidents') +
-   labs(title = 'Number of Shooting Incidents by Borough')
+   scale_fill_brewer(palette = 'YlOrRd', direction = -1) +
+   labs(title = 'Number of Shooting Incidents by Borough',
+        x = 'Borough', y = 'Number of Incidents',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
 [PLACEHOLDER TEXT]
 ```{r Visualizations - Incidents per Location}
 import_url %>%
    ggplot(., aes(x = reorder(LOCATION, LOCATION, length, decreasing = TRUE), fill = LOCATION)) + 
    geom_bar(aes(y = after_stat(count)), show.legend = FALSE) +
-   theme(axis.text.x = element_text(angle = 90, vjust = 0.05)) + 
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.05)) +
    scale_y_log10() +
-   xlab('Location Description') +
-   ylab('Number of Incidents (Log Scaled)') +
-   labs(title = 'Number of Shooting Incidents by Location Description')
+   labs(title = 'Number of Shooting Incidents by Location Description',
+        x = 'Location Description', y = 'Number of Incidents (Log Scaled)',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
 ## Incident Coordinate Data Visualized on a Map
 
@@ -181,22 +181,23 @@ Then, use `ggmap()` to generate a map centered around these coordinates. Then, w
 superimpose our data on the map using the same coordinate system we generated.
 ```{r Map Visualization}
 # Initialize the bounding box that will contain the map coordinates.
-map_bounds <- c(left = min(import_url$LONGITUDE), 
+map_bounds <- c(left = min(import_url$LONGITUDE),
         bottom = min(import_url$LATITUDE),
-        right = max(import_url$LONGITUDE), 
+        right = max(import_url$LONGITUDE),
         top = max(import_url$LATITUDE))
 
 # Initialize the scatter plot of the incident coordinates
 # Note, there are better maps out there but most require a private google API key,
 # which wouldn't work for this public project.
 incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
-        geom_point(data = import_url, 
+        geom_point(data = import_url,
                 aes(x = LONGITUDE, y = LATITUDE),
-                color = 'darkred', 
-                size = 0.25, 
+                color = 'darkred',
+                size = 0.25,
                 alpha = 0.2) +
-        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021\n') +
-        labs(x = 'LONGITUDE', y = 'LATITUDE', caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
+        labs(x = 'Longitude', y = 'Latitude',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Point Map
 incident_map_point
 
@@ -204,17 +205,18 @@ incident_map_point
 incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
         stat_density2d_filled(data = import_url, contour_var = 'density',
                 aes(x = LONGITUDE, y = LATITUDE, fill = after_stat(level)), 
-                bins = 20, 
-                geom = 'polygon', 
+                bins = 20,
+                geom = 'polygon',
                 alpha = 0.8) +
-        geom_density_2d(data = import_url, 
-                aes(x = LONGITUDE, y = LATITUDE), 
-                bins = 20, 
-                alpha = 0.2, 
+        geom_density_2d(data = import_url,
+                aes(x = LONGITUDE, y = LATITUDE),
+                bins = 20,
+                alpha = 0.2,
                 color = "white") +
-        guides(fill = guide_legend(title = "Density")) + 
-        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021\n') +
-        labs(x = 'LONGITUDE', y = 'LATITUDE', caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+        guides(fill = guide_legend(title = "Density")) +
+        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
+        labs(x = 'Longitude', y = 'Latitude', 
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Density Map
 incident_map_density
 ```
