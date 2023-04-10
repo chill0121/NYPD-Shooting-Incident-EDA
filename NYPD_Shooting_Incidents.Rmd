@@ -62,10 +62,10 @@ any(is.na(import_url$INCIDENT_KEY)) | any(is.null(import_url$INCIDENT_KEY))
 length(unique(import_url$INCIDENT_KEY))
 length(import_url$INCIDENT_KEY)
 ```
-Subtracting the results here shows that there are 5470 duplicate data points. 
-Let's take a look to make sure these aren't false positives.
+Subtracting the results here shows that there are **5470 duplicate data points**! 
+Let's take a closer look to make sure these aren't false positives.
 ```{r Removal Duplicates}
-# Sort duplicates to see what they look like, but does not change dataframe
+# Query duplicates to see what they look like
 head(filter(import_url, duplicated(import_url$INCIDENT_KEY)))
 # Check a few entries
 arrange(filter(import_url, INCIDENT_KEY == 227647476 | INCIDENT_KEY == 232390408), INCIDENT_KEY)
@@ -73,8 +73,9 @@ arrange(filter(import_url, INCIDENT_KEY == 227647476 | INCIDENT_KEY == 232390408
 # Remove duplicates
 import_url <- filter(import_url, !duplicated(import_url$INCIDENT_KEY))
 # Check work
-sum(duplicated(import_url$INCIDENT_KEY))
+length(duplicated(import_url$INCIDENT_KEY))
 ```
+That should do it for the duplicated data points. Let's continue our transformations.
 
 ### Change Feature Class Types
 For better analysis we should change the class type of a few of these features to make them easier to work with.
@@ -97,9 +98,9 @@ for(i in 1:length(import_url)){
     ifelse(is.factor(import_url[ ,i]), print(table(import_url[ ,i, drop = FALSE])), next)
 }
 ```
-Looks like there are quite a few blanks and entries labeled as "unknown" some features have both. 
-We'll combine these by labeling all blanks as unknown. This data likely comes from officers on the scene and either
-missed some information or, in the case of the perp, might not have had a witness or not caught the offender. 
+Looks like there are quite a few blank entries and a few labeled as "UNKNOWN". 
+We'll combine these by labeling all blanks as "UNKNOWN". This data likely comes from officers on the scene and either
+missed some information or, in the case of the perp, might not have had a witness or they didn't catch the offender. 
 
 - Over 50% of the `LOCATION` and `PERP_AGE` data is unknown.
 - `BOROUGH`, `MURDER_FLAG`, `PRECINCT`, `DATE`, `TIME`, `LONGITUDE`, and `LATITUDE` have no missing entries.
@@ -113,7 +114,7 @@ only hurt our analysis. Especially considering `BOROUGH`,`LONGITUDE`, and`LATITU
 Here we will combine and correct any missing entries with the methods discussed above.
 ```{r Dealing with the Unknown}
 for(i in 1:length(import_url)){
-    # If the column is a factor AND/OR contains empty space or 'U'
+    # IF the column is a factor AND contains empty space OR a 'U'
     if(is.factor(import_url[ ,i]) && '' %in% import_url[ ,i] || 'U' %in% import_url[ ,i]){
         # Add level named UNKNOWN
         levels(import_url[, i]) <- c(levels(import_url[, i]), 'UNKNOWN')
@@ -128,7 +129,8 @@ for(i in 1:length(import_url)){
 }
 ```
 Lastly there are a few values in `PERP_AGE` that look like data entry typos. 
-Instead of assuming what they intended we will change these to 'UNKNOWN'.
+See table above:('1020', '224', '940') 
+Here, we cannot assume what they intended so we will change these age values to 'UNKNOWN'.
 ```{r PERP_AGE Anomalies}
 # Before changes
 table(import_url$PERP_AGE)
@@ -149,7 +151,28 @@ table(import_url$PERP_AGE)
 
 Now that the transformations are complete, let's start plotting these features against eachother and visualizing our data 
 so we can try to make some conclusions.
-
+```{r Visualizations - Incidents per Borough}
+# Order factor levels of BOROUGH based on frequency
+import_url$BOROUGH <- fct_infreq(import_url$BOROUGH)
+# Plot graph
+import_url %>%
+   ggplot(., aes(x = reorder(BOROUGH, BOROUGH, length, decreasing = TRUE), fill = BOROUGH)) + geom_bar(aes(y = (..count..))) +
+   scale_fill_brewer(palette = 'YlOrRd', direction = -1) + 
+   xlab('Borough') +
+   ylab('Number of Incidents') +
+   labs(title = 'Number of Shooting Incidents by Borough')
+```
+[PLACEHOLDER TEXT]
+```{r Visualizations - Incidents per Location}
+import_url %>%
+   ggplot(., aes(x = reorder(LOCATION, LOCATION, length, decreasing = TRUE), fill = LOCATION)) + 
+   geom_bar(aes(y = (..count..)), show.legend = FALSE) +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.05)) + 
+   scale_y_log10() +
+   xlab('Location Description') +
+   ylab('Number of Incidents (Log Scaled)') +
+   labs(title = 'Number of Shooting Incidents by Location Description')
+```
 ## Incident Coordinate Data Visualized on a Map
 
 Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset. 
@@ -172,8 +195,8 @@ incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom 
                 color = 'darkred', 
                 size = 0.25, 
                 alpha = 0.2) +
-        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
-        labs(x = 'LONGITUDE', y = 'LATITUDE')
+        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021\n') +
+        labs(x = 'LONGITUDE', y = 'LATITUDE', caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Point Map
 incident_map_point
 
@@ -190,8 +213,8 @@ incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoo
                 alpha = 0.2, 
                 color = "white") +
         guides(fill = guide_legend(title = "Density")) + 
-        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021\n    Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>') +
-        labs(x = 'LONGITUDE', y = 'LATITUDE')
+        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021\n') +
+        labs(x = 'LONGITUDE', y = 'LATITUDE', caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Density Map
 incident_map_density
 ```
