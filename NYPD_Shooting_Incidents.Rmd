@@ -15,8 +15,7 @@ Then, importing the data using a URL directly from the source, ensures we will c
 
 ```{r Setup RMD}
 # Output all commands run and set a standard plot size
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(fig.width = 12, fig.height = 8) 
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 6)
 
 library(tidyverse)
 library(lubridate)
@@ -95,7 +94,7 @@ We will continue to look at the features and see if any of these blank entries w
 Also, we'll look to see if there are any duplicate categorical factors in the rest of the features.
 ```{r More transformations}
 # Create a table of each column to check factor levels
-for(i in 1:length(import_url)){
+for (i in 1:length(import_url)){
     ifelse(is.factor(import_url[ ,i]), print(table(import_url[ ,i, drop = FALSE])), next)
 }
 ```
@@ -107,14 +106,15 @@ Looks like there are quite a few blank entries and a few labeled as "UNKNOWN".
 
 We will combine these by labeling all blanks as "UNKNOWN". This data likely comes from officers on the scene and either
 missed some information or, in the case of the perp, might not have had a witness or they didn't catch the offender. 
-It's reasonable to leave these missing data points in because it isn't vital to the kind of analysis we will be doing, 
-considering the data that is complete holds more relevance, removing it would be like throwing away the baby with the bathwater 
+It's reasonable to leave these missing data points in because the missing data also gives us information about that incident.
+Also, removing these data points due to their empty entries would be a mistake considering the data that is complete 
+holds more relevance, removing it would be like throwing away the baby with the bathwater 
 (e.g. removing a data point that is missing the `LOCATION` description, but isn't missing the rest of the information will 
-only hurt our analysis. Especially considering `BOROUGH`,`LONGITUDE`, and`LATITUDE` aren't missing.)
+only hurt our analysis. Especially considering `BOROUGH`,`LONGITUDE`, and`LATITUDE` aren't missing.).
 
 Here we will combine and correct any missing entries with the methods discussed above.
 ```{r Dealing with the Unknown}
-for(i in 1:length(import_url)){
+for (i in 1:length(import_url)){
     # IF the column is a factor AND contains empty space OR a 'U'
     if(is.factor(import_url[ ,i]) && '' %in% import_url[ ,i] || 'U' %in% import_url[ ,i]){
         # Add level named UNKNOWN
@@ -145,17 +145,35 @@ import_url$PERP_AGE <- droplevels(import_url$PERP_AGE)
 table(import_url$PERP_AGE)
 ```
 
+### EDA Cont.
+
 Let's take a look at a summary of this data now that we've cleaned it up.
 ```{r Summary}
 summary(import_url)
 ```
+Changing many of these features from characters into factors really improves R's ability to summarize the data here.
+We can make many conclusions about this data set just from looking at the summary.
 
-### EDA Cont.
-[Summarize some of the data]
+- The earliest data point is from January 1, 2006.
+- The most recent is from December, 31 2021.
+- The distribution of `DATE` is slightly right-skewed, with a mean 9 months in the future of the median. This suggests there were more incidents from 2006-2014 than 2014-2021.
+- Out of the 20126 shooting incidents, 3522 are associated with a murder, ~17.5%.
+- Majority of perpetrators are between the ages of 18-24 and 25-44.
+- The vast majority of identified perpetrators are male.
+- The victim's age are a little more equally distributed than the perp's but the vast majority are also between 18-44.
+
+Let's take a closer look and check the `DATE` distribution skewness by finding the midpoint date of the data set. (This is the exact middle date of this data set)
+```{r Date Midpoint}
+data_interval <- interval(min(import_url$DATE), max(import_url$DATE))
+int_start(data_interval) + (int_end(data_interval) - int_start(data_interval)) / 2
+median(import_url$DATE)
+```
+Interesting, this proves there were more incidents in the first half of the time interval of the data set. 
+We will look further into this during visualizations.
 
 ## Visualizations
 
-Now that the transformations are complete, let's start plotting these features against eachother and visualizing our data 
+Now that the transformations are complete, let's start plotting these features against each other and visualizing our data 
 so we can try to make some conclusions.
 
 Let's begin by visualizing the number of shooting incidents by the `BOROUGH` they occurred.
@@ -170,19 +188,21 @@ import_url %>%
         x = 'Borough', y = 'Number of Incidents',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
-As you can see the majority of shooting incidents have occurred in Brooklyn folllowed by the Bronx and Queens.
+As you can see the majority of shooting incidents have occurred in Brooklyn followed by the Bronx and Queens.
 
 Now to plot the number of shooting incidents organized by the `LOCATION` description assigned to them.
 ```{r Visualizations - Incidents per Location}
 import_url %>%
    ggplot(., aes(x = reorder(LOCATION, LOCATION, length, decreasing = TRUE), fill = LOCATION)) + 
    geom_bar(aes(y = after_stat(count)), show.legend = FALSE) +
-   theme(axis.text.x = element_text(angle = 90, vjust = 0.05)) +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
    scale_y_log10() +
    labs(title = 'Number of Shooting Incidents by Location Description',
         x = 'Location Description', y = 'Number of Incidents (Log Scaled)',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
+Something to note, this graph has been logarithmically scaled on the y-axis for easier viewing.
+
 "Multi dwell-public housing" shows the most shooting incidents, followed by "Multi-dwell-apt building", and "Pvt house".
 This graph shows evidence that a large portion of shooting incidents in NYC occur near the homes of those involved, and though we can't say for sure, 
 likely isn't between complete strangers. This also shows just how many of these incidents were left without a location description. 
@@ -192,21 +212,35 @@ Again, it is still important to look at the remaining data we do have as it is s
 
 ## Incident Coordinate Data Visualized on a Map
 
+For reference here is a map of NYC's boroughs taken from public domain on Wikipedia: <https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/5_Boroughs_Labels_New_York_City_Map.svg/1920px-5_Boroughs_Labels_New_York_City_Map.svg.png>
+```{r, Reference Map, out.width = '400px', fig.align = 'center'}
+reference_map <- 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/5_Boroughs_Labels_New_York_City_Map.svg/1920px-5_Boroughs_Labels_New_York_City_Map.svg.png'
+knitr::include_graphics(reference_map)
+```
+From above:
+
+1. Manhattan
+2. Brooklyn
+3. Queens
+4. The Bronx
+5. Staten Island
+
 Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset. 
 First, we can use the minimum and maximum values of the longitudes and latitudes to find the map's bounding box (edges).
 Then, use `ggmap()` to generate a map centered around these coordinates. Then, we can use `geom_point()` and `stat_density2d_filled()` to
 superimpose our data on the map using the same coordinate system we generated.
-```{r Map Visualization}
-# Initialize the bounding box that will contain the map coordinates.
+```{r Point Map Visualization}
+# Initialize the bounding box that will contain the map view edges
 map_bounds <- c(left = min(import_url$LONGITUDE),
         bottom = min(import_url$LATITUDE),
         right = max(import_url$LONGITUDE),
         top = max(import_url$LATITUDE))
 
-# Initialize the scatter plot of the incident coordinates
+# Initialize the map of NYC using map_bounds
 # Note, there are better maps out there but most require a private google API key,
-# which wouldn't work for this public project.
+# which wouldn't work for this public, knit-able, project.
 incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
+# Overlay each data point using LONG. and LAT.
         geom_point(data = import_url,
                 aes(x = LONGITUDE, y = LATITUDE),
                 color = 'darkred',
@@ -217,7 +251,19 @@ incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom 
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Point Map
 incident_map_point
+```
+This looks great and gives a much deeper understanding of the data, much further at least than the previous borough plot.
+The point map does have limitations though. The more points that are plotted in an area lose some information when they overlap.
+It's hard to compare the higher density areas to one another (e.g. we know from the previous graph that Brooklyn has >2000 more incidents
+than The Bronx, but here you really can't parse that out.).
 
+- Central Park seems to be quite safe from shootings.
+- The North side of Manhattan is responsible for the majority of the shootings there.
+- The distribution of shootings in Queens is quite spread out and mostly on the South side.
+- There's some hot spots that were not obvious without the coordinate data, namely around the coasts.
+
+Let's try to convert this same data into a heat/density map to get a better picture of these higher density areas.
+```{r Density Map Visualization}
 # Initialize density map to better visualize regions with frequent incidents.
 incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
         stat_density2d_filled(data = import_url, contour_var = 'density',
@@ -237,3 +283,7 @@ incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoo
 # Display Density Map
 incident_map_density
 ```
+
+- Now it's much more obvious that Brooklyn exhibits more shooting incidents than The Bronx, denoted here by a more intense yellow/green.
+- Though the total amount in Manhattan is lower than Queens, you can see it's much more concentrated to one area in Manhattan.
+- The masking of the lower density areas highlights some areas we may have overlooked on the scatter plot.
