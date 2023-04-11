@@ -14,6 +14,7 @@ We will first begin by loading in the packages we intend to use.
 Then, importing the data using a URL directly from the source, ensures we will capture updates to the data as they come in, whenever this is run again.
 
 ```{r Setup RMD}
+# Output all commands run and set a standard plot size
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(fig.width = 12, fig.height = 8) 
 
@@ -99,13 +100,13 @@ for(i in 1:length(import_url)){
 }
 ```
 Looks like there are quite a few blank entries and a few labeled as "UNKNOWN". 
-We'll combine these by labeling all blanks as "UNKNOWN". This data likely comes from officers on the scene and either
-missed some information or, in the case of the perp, might not have had a witness or they didn't catch the offender. 
 
 - Over 50% of the `LOCATION` and `PERP_AGE` data is unknown.
 - `BOROUGH`, `MURDER_FLAG`, `PRECINCT`, `DATE`, `TIME`, `LONGITUDE`, and `LATITUDE` have no missing entries.
-- The remaining features are missing a few, but is not a significant amount compared to the size of the dataset.
+- The remaining features are missing a few, but is not a significant amount compared to the overall size of the dataset.
 
+We will combine these by labeling all blanks as "UNKNOWN". This data likely comes from officers on the scene and either
+missed some information or, in the case of the perp, might not have had a witness or they didn't catch the offender. 
 It's reasonable to leave these missing data points in because it isn't vital to the kind of analysis we will be doing, 
 considering the data that is complete holds more relevance, removing it would be like throwing away the baby with the bathwater 
 (e.g. removing a data point that is missing the `LOCATION` description, but isn't missing the rest of the information will 
@@ -130,7 +131,7 @@ for(i in 1:length(import_url)){
 ```
 Lastly there are a few values in `PERP_AGE` that look like data entry typos. 
 See table above:('1020', '224', '940') 
-Here, we cannot assume what they intended so we will change these age values to 'UNKNOWN'.
+Here, we cannot assume what was intended so we will change these age values to 'UNKNOWN'.
 ```{r PERP_AGE Anomalies}
 # Before changes
 table(import_url$PERP_AGE)
@@ -144,6 +145,11 @@ import_url$PERP_AGE <- droplevels(import_url$PERP_AGE)
 table(import_url$PERP_AGE)
 ```
 
+Let's take a look at a summary of this data now that we've cleaned it up.
+```{r Summary}
+summary(import_url)
+```
+
 ### EDA Cont.
 [Summarize some of the data]
 
@@ -151,6 +157,8 @@ table(import_url$PERP_AGE)
 
 Now that the transformations are complete, let's start plotting these features against eachother and visualizing our data 
 so we can try to make some conclusions.
+
+Let's begin by visualizing the number of shooting incidents by the `BOROUGH` they occurred.
 ```{r Visualizations - Incidents per Borough}
 # Order factor levels of BOROUGH based on frequency
 import_url$BOROUGH <- fct_infreq(import_url$BOROUGH)
@@ -162,7 +170,9 @@ import_url %>%
         x = 'Borough', y = 'Number of Incidents',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
-[PLACEHOLDER TEXT]
+As you can see the majority of shooting incidents have occurred in Brooklyn folllowed by the Bronx and Queens.
+
+Now to plot the number of shooting incidents organized by the `LOCATION` description assigned to them.
 ```{r Visualizations - Incidents per Location}
 import_url %>%
    ggplot(., aes(x = reorder(LOCATION, LOCATION, length, decreasing = TRUE), fill = LOCATION)) + 
@@ -173,6 +183,13 @@ import_url %>%
         x = 'Location Description', y = 'Number of Incidents (Log Scaled)',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
+"Multi dwell-public housing" shows the most shooting incidents, followed by "Multi-dwell-apt building", and "Pvt house".
+This graph shows evidence that a large portion of shooting incidents in NYC occur near the homes of those involved, and though we can't say for sure, 
+likely isn't between complete strangers. This also shows just how many of these incidents were left without a location description. 
+We don't know for certain of course, but this could have been left for many reasons -- a shooting was reported but 
+they weren't sure exactly from where, on the street, etc.
+Again, it is still important to look at the remaining data we do have as it is still quite a sizeable sample.
+
 ## Incident Coordinate Data Visualized on a Map
 
 Here we're going to visualize the location of each shooting incident using the coordinates given in the dataset. 
