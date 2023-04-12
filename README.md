@@ -12,3 +12,4 @@ Required R packages for knitting:
 - lubridate
 - ggplot2
 - ggmap
+- gridExtra
