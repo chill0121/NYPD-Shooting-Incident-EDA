@@ -275,7 +275,7 @@ year_plot
 
 - The number of shootings consistently trend down until 2020.
 - This further shows that there were more shootings during 2006-2014 than 2014-2021.
-- Interestingly, the Covid pandemic did not affect the number of shooting incidents as would be expected.
+- Interestingly, the Covid pandemic seems to have affected the number of shooting incidents in the opposite way as would be expected.
 
 Let's take a closer look at 2020 and 2021 but include the months to see if the pandemic had any noticeable influence.
 We'll also include 2018-2021 for context.
@@ -299,6 +299,10 @@ ggplot(covid_months_totals, aes(x = MONTH, y = n, fill = YEAR)) +
         x = 'Month', y = 'Number of Incidents',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
+
+Interesting, here it shows there was an increase in shooting incidents beginning in May and June of 2020, coming off a downward trend from previous years.
+Let's take another view here and include the date when New York City initiated their lockdown to see if it alings with this increase.
+
 ```{r, Covid Years 2, fig.height = 4, fig.width = 8, fig.align = 'center'}
 covid_slice_2 <- import_url %>%
     filter(DATE > '2018-01-01') %>%
@@ -310,15 +314,19 @@ covid_months_totals_2 <- covid_slice_2 %>%
 
 ggplot(covid_months_totals_2, aes(x = DATE, y = n, fill = DATE)) +
     geom_col(show.legend = FALSE) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
     geom_vline(xintercept = 27.25) +
-    annotate('label', x = 27.25, y = 125, angle = 90, color = 'darkred', label = 'Covid Pandemic Lockdown Initiated') +
+    annotate('label', x = 27.25, y = 175, angle = 90, color = 'black', label = 'Covid Pandemic Lockdown Initiated') +
     annotate("rect", xmin = 0, xmax = 27.25, ymin = 0, ymax = 250, alpha = .2, fill = "#00c9d0") +
     annotate("rect", xmin = 27.25, xmax = 48.5, ymin = 0, ymax = 250, alpha = .2, fill = "#c42a07") +
     labs(title = 'Shooting Incidents per Year 2018-2021',
         x = 'Month', y = 'Number of Incidents',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
+
+There certainly is some underlying correlation here, but from this data we can't say for sure what that is exactly. That said, this is
+an interesting result because the increase in shootings seems to correlate to the period of time where the pandemic lockdown in NYC
+would have been in affect for over a month and would have been beginning to loosen.
 
 ### Incident Coordinate Data Visualized on a Map
 
@@ -340,7 +348,7 @@ Here we're going to visualize the location of each shooting incident using the c
 First, we can use the minimum and maximum values of the longitudes and latitudes to find the map's bounding box (edges).
 Then, use `ggmap()` to generate a map centered around these coordinates. Then, we can use `geom_point()` and `stat_density2d_filled()` to
 superimpose our data on the map using the same coordinate system we generated.
-```{r Point Map Visualization}
+```{r, Point Map Visualization, fig.height = 10, fig.width = 16, fig.align = 'center'}
 # Initialize the bounding box that will contain the map view edges
 map_bounds <- c(left = min(import_url$LONGITUDE),
         bottom = min(import_url$LATITUDE),
@@ -356,25 +364,38 @@ incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom 
                 aes(x = LONGITUDE, y = LATITUDE),
                 color = 'darkred',
                 size = 0.25,
-                alpha = 0.2) +
+                alpha = 0.5) +
+        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
+        labs(x = 'Longitude', y = 'Latitude',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+
+incident_map_point_color <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
+# Overlay each data point using LONG. and LAT.
+        geom_point(data = import_url,
+                aes(x = LONGITUDE, y = LATITUDE, color = BOROUGH),
+                size = 0.25,
+                alpha = 0.5) +
+        scale_color_brewer(palette = 'Set1', direction = 1, name = 'Borough') +
+        theme(legend.position = 'bottom') +
+        guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) +
         ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
         labs(x = 'Longitude', y = 'Latitude',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Point Map
-incident_map_point
+grid.arrange(incident_map_point, incident_map_point_color, ncol = 2)
 ```
 This looks great and gives a much deeper understanding of the spacial distribution of the shootings, 
 much more than the previous borough plot.
-The point map does have limitations though. The more points that are plotted in an area lose some information when they overlap.
-It's hard to compare the higher density areas to one another (e.g. we know from the previous graph that Brooklyn has >2000 more incidents
-than The Bronx, but here you really can't parse that out.).
 
 - Central Park seems to be quite safe from shootings.
 - The North side of Manhattan is responsible for the majority of the shootings in that borough.
-- The distribution of shootings in Queens is quite evenly spread, but mostly on the South side.
+- Comparatively, the distribution of shootings in Queens is quite evenly spread, and mostly on the South side.
 - There are some hot spots that would not be obvious without the coordinate data, namely around the coasts.
 
-Let's try to convert this same data into a heat/density map to get a better picture of these higher density areas.
+The point map does have limitations though. The more points that are plotted in an area lose some information when they overlap.
+It's hard to compare the higher density areas to one another (e.g. we know from the previous graph that Brooklyn has >2000 more incidents
+than The Bronx, but here you really can't parse that out.).
+Let's try to convert this into a heat/density map to get a better picture of these higher density areas.
 ```{r Density Map Visualization}
 # Initialize density map to better visualize regions with frequent incidents.
 incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
