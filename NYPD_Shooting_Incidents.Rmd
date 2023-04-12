@@ -9,6 +9,9 @@ output:
 
 ## Setup
 
+Note, before using knitr please install all missing packages in the code cell below into your environment. Also, I recommended
+knitting into HTML as it has been optimized for viewing in that format.
+
 ### Data Source Information
 
 This data was procured from <https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic> and will be updated annually at the source and any time this .rmd file is knit.
