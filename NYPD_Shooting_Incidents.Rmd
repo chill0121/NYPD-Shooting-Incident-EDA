@@ -12,10 +12,11 @@ output:
 ### Data Source Information
 
 This data was procured from <https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic> and will be updated annually at the source and any time this .rmd file is knit.
-From the source:
-"List of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year.
 
-This is a breakdown of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year. This data is manually extracted every quarter and reviewed by the Office of Management Analysis and Planning before being posted on the NYPD website. Each record represents a shooting incident in NYC and includes information about the event, the location and time of occurrence. In addition, information related to suspect and victim demographics is also included. This data can be used by the public to explore the nature of shooting/criminal activity. Please refer to the attached data footnotes for additional information about this dataset."
+From the source:
+*"List of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year.*
+
+*This is a breakdown of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year. This data is manually extracted every quarter and reviewed by the Office of Management Analysis and Planning before being posted on the NYPD website. Each record represents a shooting incident in NYC and includes information about the event, the location and time of occurrence. In addition, information related to suspect and victim demographics is also included. This data can be used by the public to explore the nature of shooting/criminal activity. Please refer to the attached data footnotes for additional information about this dataset."*
 
 
 For more information on the details of this dataset it is recommended to follow the link and access the footnotes pdf found on the landing page website.
@@ -455,6 +456,8 @@ they saw a large increase from right after the Covid Pandemic began.
 Much of the bias of this analysis comes from choosing what features to include or not and possibly what conclusions can be drawn.
 My experience with living in a metropolitan city or past experiences with police officers could also affect the lens I view this information.
 In an attempt to mitigate these biases I've chosen to only include what I believe the data to empirically show, and not obfuscate any methods in obtaining these results.
-Another, bias that is likely present here is how the data was collected, reviewed, and updated. We don't know the exact method in this case, and it is likely
-working off of hundreds of police officer's efforts over the years with their own biases. These are all things to keep in mind when
+
+
+Another bias that is likely present here is how the data was collected, reviewed, and updated. We don't know the exact method in this case, and it is likely
+working off of hundreds of police officer's efforts over the years who went about their work with their own biases. These are all things to keep in mind when
 working with these datasets and drawing conclusions from them. Hopefully I've made the conclusions I made here reproducible and clear.
