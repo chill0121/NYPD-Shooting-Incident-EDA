@@ -9,6 +9,19 @@ output:
 
 ## Setup
 
+### Data Source Information
+
+This data was procured from <https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic> and will be updated annually at the source and any time this .rmd file is knit.
+From the source:
+"List of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year.
+
+This is a breakdown of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year. This data is manually extracted every quarter and reviewed by the Office of Management Analysis and Planning before being posted on the NYPD website. Each record represents a shooting incident in NYC and includes information about the event, the location and time of occurrence. In addition, information related to suspect and victim demographics is also included. This data can be used by the public to explore the nature of shooting/criminal activity. Please refer to the attached data footnotes for additional information about this dataset."
+
+
+For more information on the details of this dataset it is recommended to follow the link and access the footnotes pdf found on the landing page website.
+
+### Environment Setup
+
 We will first begin by loading in the packages we intend to use. 
 
 Then, importing the data using a URL directly from the source, ensures we will capture updates to the data as they come in, whenever this is run again.
@@ -108,7 +121,8 @@ Looks like there are quite a few blank entries and a few labeled as "UNKNOWN".
 - The remaining features are missing a few, but is not a significant amount compared to the overall size of the dataset.
 
 We will combine these by labeling all blanks as "UNKNOWN". This data likely comes from officers on the scene and either
-missed some information or, in the case of the perp, might not have had a witness or they didn't catch the offender. 
+missed some information, in the case of the perp, might not have had a witness or they didn't catch the offender, or might not have
+been previously recorded but now is due to process changes. 
 It's reasonable to leave these missing data points in because the missing data also gives us information about that incident.
 Also, removing these data points due to their empty entries would be a mistake considering the data that is complete 
 holds more relevance, removing it would be like throwing away the baby with the bathwater 
@@ -301,7 +315,7 @@ ggplot(covid_months_totals, aes(x = MONTH, y = n, fill = YEAR)) +
 ```
 
 Interesting, here it shows there was an increase in shooting incidents beginning in May and June of 2020, coming off a downward trend from previous years.
-Let's take another view here and include the date when New York City initiated their lockdown to see if it alings with this increase.
+Let's take another view here and include the date when New York City initiated their lockdown to see if it aligns with this increase.
 
 ```{r, Covid Years 2, fig.height = 4, fig.width = 8, fig.align = 'center'}
 covid_slice_2 <- import_url %>%
@@ -326,7 +340,7 @@ ggplot(covid_months_totals_2, aes(x = DATE, y = n, fill = DATE)) +
 
 There certainly is some underlying correlation here, but from this data we can't say for sure what that is exactly. That said, this is
 an interesting result because the increase in shootings seems to correlate to the period of time where the pandemic lockdown in NYC
-would have been in affect for over a month and would have been beginning to loosen.
+would have been in affect for over a month and would have been begun to loosen.
 
 ### Incident Coordinate Data Visualized on a Map
 
@@ -350,44 +364,45 @@ Then, use `ggmap()` to generate a map centered around these coordinates. Then, w
 superimpose our data on the map using the same coordinate system we generated.
 ```{r, Point Map Visualization, fig.height = 10, fig.width = 16, fig.align = 'center'}
 # Initialize the bounding box that will contain the map view edges
-map_bounds <- c(left = min(import_url$LONGITUDE),
-        bottom = min(import_url$LATITUDE),
-        right = max(import_url$LONGITUDE),
-        top = max(import_url$LATITUDE))
+map_bounds <- c(
+    left = min(import_url$LONGITUDE),
+    bottom = min(import_url$LATITUDE),
+    right = max(import_url$LONGITUDE),
+    top = max(import_url$LATITUDE))
 
 # Initialize the map of NYC using map_bounds
 # Note, there are better maps out there but most require a private google API key,
 # which wouldn't work for this public, knit-able, project.
 incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
 # Overlay each data point using LONG. and LAT.
-        geom_point(data = import_url,
-                aes(x = LONGITUDE, y = LATITUDE),
-                color = 'darkred',
-                size = 0.25,
-                alpha = 0.5) +
-        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
-        labs(x = 'Longitude', y = 'Latitude',
-        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+    geom_point(data = import_url,
+            aes(x = LONGITUDE, y = LATITUDE),
+            color = 'darkred',
+            size = 0.25,
+            alpha = 0.5) +
+    ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
+    labs(x = 'Longitude', y = 'Latitude',
+    caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 
 incident_map_point_color <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
 # Overlay each data point using LONG. and LAT.
-        geom_point(data = import_url,
-                aes(x = LONGITUDE, y = LATITUDE, color = BOROUGH),
-                size = 0.25,
-                alpha = 0.5) +
-        scale_color_brewer(palette = 'Set1', direction = 1, name = 'Borough') +
-        theme(legend.position = 'bottom') +
-        guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) +
-        ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
-        labs(x = 'Longitude', y = 'Latitude',
-        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+    geom_point(data = import_url,
+        aes(x = LONGITUDE, y = LATITUDE, color = BOROUGH),
+        size = 0.25,
+        alpha = 0.5) +
+    scale_color_brewer(palette = 'Set1', direction = 1, name = 'Borough') +
+    theme(legend.position = 'bottom') +
+    guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) +
+    ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
+    labs(x = 'Longitude', y = 'Latitude',
+    caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Point Map
 grid.arrange(incident_map_point, incident_map_point_color, ncol = 2)
 ```
 This looks great and gives a much deeper understanding of the spacial distribution of the shootings, 
 much more than the previous borough plot.
 
-- Central Park seems to be quite safe from shootings.
+- Central Park seems to be quite safe from shootings (though this may be due to the methods of recording incidents).
 - The North side of Manhattan is responsible for the majority of the shootings in that borough.
 - Comparatively, the distribution of shootings in Queens is quite evenly spread, and mostly on the South side.
 - There are some hot spots that would not be obvious without the coordinate data, namely around the coasts.
@@ -399,20 +414,21 @@ Let's try to convert this into a heat/density map to get a better picture of the
 ```{r Density Map Visualization}
 # Initialize density map to better visualize regions with frequent incidents.
 incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
-        stat_density2d_filled(data = import_url, contour_var = 'density',
-                aes(x = LONGITUDE, y = LATITUDE, fill = after_stat(level)), 
-                bins = 20,
-                geom = 'polygon',
-                alpha = 0.8) +
-        geom_density_2d(data = import_url,
-                aes(x = LONGITUDE, y = LATITUDE),
-                bins = 20,
-                alpha = 0.2,
-                color = "white") +
-        guides(fill = guide_legend(title = "Density")) +
-        ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
-        labs(x = 'Longitude', y = 'Latitude', 
-        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+    stat_density2d_filled(data = import_url,
+        contour_var = 'density',
+        aes(x = LONGITUDE, y = LATITUDE, fill = after_stat(level)),
+        bins = 20,
+        geom = 'polygon',
+        alpha = 0.8) +
+    geom_density_2d(data = import_url,
+        aes(x = LONGITUDE, y = LATITUDE),
+        bins = 20,
+        alpha = 0.2,
+        color = "white") +
+    guides(fill = guide_legend(title = "Density")) +
+    ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
+    labs(x = 'Longitude', y = 'Latitude',
+    caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Density Map
 incident_map_density
 ```
@@ -420,3 +436,25 @@ incident_map_density
 - Now it's much more obvious that Brooklyn exhibits more shooting incidents than The Bronx, denoted here by a more intense yellow/green.
 - Though the total amount in Manhattan is lower than Queens, you can see it's much more concentrated to one area in Manhattan.
 - The masking of the lower density areas highlights some areas we may have overlooked on the scatter plot.
+
+## Conclusion 
+
+Even features that initially seemed sparse, considering the number of missing entries, led to valuable insights into this data.
+
+Some takeaways we've seen from above:
+
+1. While the overall trend in number of shooting incidents was going down year after year from 2006 to the beginning of 2020, 
+they saw a large increase from right after the Covid Pandemic began. 
+2. Majority of shootings in the dataset occur in Brooklyn, The Bronx, and near public and private housing.
+3. Even in low incident areas there are identifiable hotspots that most shootings occur (e.g. Staten Island, though low on the totals scale, shows ~5 localized clusters of incidents).
+4. While women make up ~8.18% of the victims in the cases where the sex was known, they only make up ~2.03% of the perpetrators where the sex was known.
+5. The north side of Manhattan is responsible for a large portion of the number of incidents in the borough.
+
+### Bias
+
+Much of the bias of this analysis comes from choosing what features to include or not and possibly what conclusions can be drawn.
+My experience with living in a metropolitan city or past experiences with police officers could also affect the lens I view this information.
+In an attempt to mitigate these biases I've chosen to only include what I believe the data to empirically show, and not obfuscate any methods in obtaining these results.
+Another, bias that is likely present here is how the data was collected, reviewed, and updated. We don't know the exact method in this case, and it is likely
+working off of hundreds of police officer's efforts over the years with their own biases. These are all things to keep in mind when
+working with these datasets and drawing conclusions from them. Hopefully I've made the conclusions I made here reproducible and clear.
