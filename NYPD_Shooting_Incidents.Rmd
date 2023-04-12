@@ -21,6 +21,7 @@ library(tidyverse)
 library(lubridate)
 library(ggmap)
 library(ggplot2)
+library(gridExtra)
 
 import_url <- read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
 ```
@@ -81,11 +82,13 @@ That should do it for the duplicated data points. Let's continue our transformat
 For better analysis we should change the class type of a few of these features to make them easier to work with.
 ```{r Class Changes}
 # Character to Date and Period
-import_url <- import_url %>% mutate(DATE = mdy(DATE)) %>%
+import_url <- import_url %>%
+        mutate(DATE = mdy(DATE)) %>%
         mutate(TIME = hms(TIME))
 
 # Character to Factors - changes all character columns to factor
-import_url <- import_url %>% mutate(across(where(is.character), as.factor))
+import_url <- import_url %>%
+        mutate(across(where(is.character), as.factor))
 str(import_url)
 ```
 
@@ -177,17 +180,20 @@ Now that the transformations are complete, let's start plotting these features a
 so we can try to make some conclusions.
 
 Let's begin by visualizing the number of shooting incidents by the `BOROUGH` they occurred.
-```{r Visualizations - Incidents per Borough}
+```{r, Visualizations - Incidents per Borough, fig.height = 4, fig.width = 6, fig.align = 'center'}
 # Order factor levels of BOROUGH based on frequency
 import_url$BOROUGH <- fct_infreq(import_url$BOROUGH)
 # Plot graph
 import_url %>%
-   ggplot(., aes(x = reorder(BOROUGH, BOROUGH, length, decreasing = TRUE), fill = BOROUGH)) + geom_bar(aes(y = after_stat(count))) +
+   ggplot(., aes(x = reorder(BOROUGH, BOROUGH, length, decreasing = TRUE), fill = BOROUGH)) +
+   geom_bar(aes(y = after_stat(count))) +
    scale_fill_brewer(palette = 'YlOrRd', direction = -1) +
+   theme(axis.text.x = element_text(angle = 25, hjust = 1)) +
    labs(title = 'Number of Shooting Incidents by Borough',
         x = 'Borough', y = 'Number of Incidents',
         caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 ```
+
 As you can see the majority of shooting incidents have occurred in Brooklyn followed by the Bronx and Queens.
 
 Now to plot the number of shooting incidents organized by the `LOCATION` description assigned to them.
@@ -203,21 +209,126 @@ import_url %>%
 ```
 Something to note, this graph has been logarithmically scaled on the y-axis for easier viewing.
 
-"Multi dwell-public housing" shows the most shooting incidents, followed by "Multi-dwell-apt building", and "Pvt house".
-This graph shows evidence that a large portion of shooting incidents in NYC occur near the homes of those involved, and though we can't say for sure, 
-likely isn't between complete strangers. This also shows just how many of these incidents were left without a location description. 
-We don't know for certain of course, but this could have been left for many reasons -- a shooting was reported but 
-they weren't sure exactly from where, on the street, etc.
-Again, it is still important to look at the remaining data we do have as it is still quite a sizeable sample.
+- "Multi dwell-public housing" shows the most shooting incidents, followed by "Multi-dwell-apt building", and "Pvt house".
+- This graph shows evidence that a large portion of shooting incidents in NYC occur near the homes of those involved, and though we can't say for sure, 
+this suggests altercations are not between complete strangers. 
+- This also shows just how many of these incidents were left without a location description. This could have been left empty for many reasons -- a shooting was reported but 
+it was unclear exactly from where, it occurred on the street, etc. Again, it is still important to look at the remaining data we do have as it is still quite a sizeable sample.
 
-## Incident Coordinate Data Visualized on a Map
 
-For reference here is a map of NYC's boroughs taken from public domain on Wikipedia: <https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/5_Boroughs_Labels_New_York_City_Map.svg/1920px-5_Boroughs_Labels_New_York_City_Map.svg.png>
+```{r Total Incidents per Month and Hour}
+# Group by month and total # of incidents
+inc_month_totals <- import_url %>%
+    group_by(month_totals = months(DATE)) %>%
+    summarize(n = n()) %>%
+    arrange(match(month_totals, month.name)) %>%
+    mutate(month_totals = factor(month_totals, levels = month.name))
+
+# Plot the tibble
+month_plot <- ggplot(inc_month_totals, aes(x = month_totals, y = n, fill = month_totals)) +
+    geom_col()+
+    scale_fill_brewer(palette = 'Paired', direction = 1, name = 'Month') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = 'Shooting Incidents per Month',
+        x = 'Month', y = 'Number of Incidents',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+
+# Group by hour and total # of incidents
+inc_hour_totals <- import_url %>%
+    group_by(hour_totals = hour(TIME)) %>%
+    summarize(n = n()) %>%
+    mutate(hour_totals = factor(hour_totals))
+
+# Plot
+hour_plot <- ggplot(inc_hour_totals, aes(x = hour_totals, y = n, fill = hour_totals)) +
+    geom_col(show.legend = FALSE) +
+    labs(title = 'Shooting Incidents per Hour of the Day',
+        x = 'Hour (24H)', y = 'Number of Incidents',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+
+# Plot side-by-side
+grid.arrange(month_plot, hour_plot, nrow = 1)
+```
+
+- Like with other crimes, we see a higher amount during the warmer months.
+- Shootings are much more likely during the darker hours when the sun is down.
+- Shootings hit a maximum peak at 11:00 (23:00).
+- Incidents happen much less often in the morning when people are starting their day and commuting with a minimum at 7:00-9:59.
+
+Looking at these makes me ask the question, "have shootings becoming more or less frequent over the years?". 
+Let's find out what this data suggests the answer is next.
+
+```{r, Incidents per Year, fig.height = 4, fig.width = 6, fig.align = 'center'}
+inc_year_totals <- import_url %>%
+    group_by(year_totals = year(DATE)) %>%
+    summarize(n = n()) %>%
+    mutate(year_totals = factor(year_totals))
+
+year_plot <- ggplot(inc_year_totals, aes(x = year_totals, y = n, fill = year_totals)) +
+    geom_col(show.legend = FALSE) +
+    theme(axis.text.x = element_text(angle = 25, hjust = 1)) +
+    labs(title = 'Shooting Incidents per Year',
+        x = 'Year', y = 'Number of Incidents',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+year_plot
+```
+
+- The number of shootings consistently trend down until 2020.
+- This further shows that there were more shootings during 2006-2014 than 2014-2021.
+- Interestingly, the Covid pandemic did not affect the number of shooting incidents as would be expected.
+
+Let's take a closer look at 2020 and 2021 but include the months to see if the pandemic had any noticeable influence.
+We'll also include 2018-2021 for context.
+```{r, Covid Years, fig.height = 4, fig.width = 6, fig.align = 'center'}
+covid_slice <- import_url %>%
+    filter(DATE > '2018-01-01') %>%
+    mutate(MONTH = stamp('January', orders = '%B', quiet = TRUE)(DATE)) %>%
+    mutate(YEAR = stamp('2020', orders = 'y', quiet = TRUE)(DATE))
+
+covid_months_totals <- covid_slice %>%
+    group_by(MONTH, YEAR) %>%
+    summarize(n = sum(n())) %>%
+    arrange(match(MONTH, month.name)) %>%
+    mutate(MONTH = factor(MONTH, levels = month.name))
+
+ggplot(covid_months_totals, aes(x = MONTH, y = n, fill = YEAR)) +
+    geom_col() +
+    scale_fill_brewer(palette = 'Spectral', direction = 1, name = 'Year') +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = 'Stacked Barchart Shooting Incidents per Year 2018-2021',
+        x = 'Month', y = 'Number of Incidents',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+```
+```{r, Covid Years 2, fig.height = 4, fig.width = 8, fig.align = 'center'}
+covid_slice_2 <- import_url %>%
+    filter(DATE > '2018-01-01') %>%
+    mutate(DATE = stamp('2020-01', orders = 'ym', quiet = TRUE)(DATE))
+
+covid_months_totals_2 <- covid_slice_2 %>%
+    group_by(DATE) %>%
+    summarize(n = sum(n()))
+
+ggplot(covid_months_totals_2, aes(x = DATE, y = n, fill = DATE)) +
+    geom_col(show.legend = FALSE) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    geom_vline(xintercept = 27.25) +
+    annotate('label', x = 27.25, y = 125, angle = 90, color = 'darkred', label = 'Covid Pandemic Lockdown Initiated') +
+    annotate("rect", xmin = 0, xmax = 27.25, ymin = 0, ymax = 250, alpha = .2, fill = "#00c9d0") +
+    annotate("rect", xmin = 27.25, xmax = 48.5, ymin = 0, ymax = 250, alpha = .2, fill = "#c42a07") +
+    labs(title = 'Shooting Incidents per Year 2018-2021',
+        x = 'Month', y = 'Number of Incidents',
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+```
+
+### Incident Coordinate Data Visualized on a Map
+
+For reference here is a map of NYC's boroughs in the public domain from Wikipedia: <https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/5_Boroughs_Labels_New_York_City_Map.svg>
 ```{r, Reference Map, out.width = '400px', fig.align = 'center'}
-reference_map <- 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/5_Boroughs_Labels_New_York_City_Map.svg/1920px-5_Boroughs_Labels_New_York_City_Map.svg.png'
+reference_map <- 'https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/5_Boroughs_Labels_New_York_City_Map.svg'
 knitr::include_graphics(reference_map)
 ```
-From above:
+
+Labels on borough reference map:
 
 1. Manhattan
 2. Brooklyn
@@ -252,15 +363,16 @@ incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom 
 # Display Point Map
 incident_map_point
 ```
-This looks great and gives a much deeper understanding of the data, much further at least than the previous borough plot.
+This looks great and gives a much deeper understanding of the spacial distribution of the shootings, 
+much more than the previous borough plot.
 The point map does have limitations though. The more points that are plotted in an area lose some information when they overlap.
 It's hard to compare the higher density areas to one another (e.g. we know from the previous graph that Brooklyn has >2000 more incidents
 than The Bronx, but here you really can't parse that out.).
 
 - Central Park seems to be quite safe from shootings.
-- The North side of Manhattan is responsible for the majority of the shootings there.
-- The distribution of shootings in Queens is quite spread out and mostly on the South side.
-- There's some hot spots that were not obvious without the coordinate data, namely around the coasts.
+- The North side of Manhattan is responsible for the majority of the shootings in that borough.
+- The distribution of shootings in Queens is quite evenly spread, but mostly on the South side.
+- There are some hot spots that would not be obvious without the coordinate data, namely around the coasts.
 
 Let's try to convert this same data into a heat/density map to get a better picture of these higher density areas.
 ```{r Density Map Visualization}
