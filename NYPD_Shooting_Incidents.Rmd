@@ -9,7 +9,7 @@ output:
 
 ## Setup
 
-Note, before using knitr please install all missing packages in the code cell below into your environment. Also, I recommended
+Note, before using knitr please install all missing packages from the code cell below into your environment. Also, I recommended
 knitting into HTML as it has been optimized for viewing in that format.
 
 ### Data Source Information
@@ -26,9 +26,9 @@ For more information on the details of this dataset it is recommended to follow 
 
 ### Environment Setup
 
-We will first begin by loading in the packages we intend to use. 
+We will first begin by loading in the R packages we intend to use. 
 
-Then, importing the data using a URL directly from the source, ensures we will capture updates to the data as they come in, whenever this is run again.
+Then, we will import the data using a URL directly from the source, this ensures we will capture updates to the data as they come in, whenever this is run again.
 
 ```{r Setup RMD}
 # Output all commands run and set a standard plot size
@@ -45,7 +45,7 @@ import_url <- read.csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.c
 
 ## Transformation and Exploratory Data Analysis (EDA)
 
-Let's take a look at the dimensions of this imported data.frame, as well as the variable types of each column, and summary.
+Let's take a look at the dimensions of this imported data.frame, as well as the variable types of each column, and output a summary.
 ```{r EDA}
 dim(import_url)
 str(import_url)
@@ -57,11 +57,13 @@ Looks like we have 19 columns **(features)** and 25596 rows **(data points)**.
 First, let's remove any features that we won't be needing for our analysis.
 
 1. `JURISDICTION_CODE` is pretty broad for localizing shooting incidents so we will end up using `BORO` instead which will give more insight to our analysis.
-2. `X_COORD_CD`, `Y_COORD_CD`, and `Lon_Lat` are all redundant.
+2. `X_COORD_CD`, `Y_COORD_CD`, and `Lon_Lat` are all redundant as we will use `LONGITUDE` and `LATITUDE` in their place.
 
 Also, let's rename a few of these for more readability.
 ```{r Feature Removal and Renaming}
+# Remove features
 import_url <- select(import_url, -JURISDICTION_CODE, -X_COORD_CD, -Y_COORD_CD, -Lon_Lat)
+# Rename features
 import_url <- import_url %>%
         rename(c('DATE' = 'OCCUR_DATE', 'TIME' = 'OCCUR_TIME','BOROUGH' = 'BORO', 
                 'LOCATION' = 'LOCATION_DESC', 'MURDER_FLAG' = 'STATISTICAL_MURDER_FLAG', 
@@ -122,16 +124,15 @@ Looks like there are quite a few blank entries and a few labeled as "UNKNOWN".
 
 - Over 50% of the `LOCATION` and `PERP_AGE` data is unknown.
 - `BOROUGH`, `MURDER_FLAG`, `PRECINCT`, `DATE`, `TIME`, `LONGITUDE`, and `LATITUDE` have no missing entries.
-- The remaining features are missing a few, but is not a significant amount compared to the overall size of the dataset.
+- The remaining features are missing a few, but are not a significant amount compared to the overall size of the dataset.
 
-We will combine these by labeling all blanks as "UNKNOWN". This data likely comes from officers on the scene and either
-missed some information, in the case of the perp, might not have had a witness or they didn't catch the offender, or might not have
-been previously recorded but now is due to process changes. 
+We will combine these by labeling all blanks as "UNKNOWN". This data likely comes from officers on the scene who may have: 1.
+missed some information; 2. did not have a witness and/or did not catch the offender; or 3. not have previously recorded this particular data but now are due to process changes. 
 It's reasonable to leave these missing data points in because the missing data also gives us information about that incident.
 Also, removing these data points due to their empty entries would be a mistake considering the data that is complete 
-holds more relevance, removing it would be like throwing away the baby with the bathwater 
+holds more relevance. Removing it would be like throwing away the baby with the bathwater 
 (e.g. removing a data point that is missing the `LOCATION` description, but isn't missing the rest of the information will 
-only hurt our analysis. Especially considering `BOROUGH`,`LONGITUDE`, and`LATITUDE` aren't missing.).
+only hurt our analysis. Especially considering `BOROUGH`,`LONGITUDE`, and`LATITUDE` aren't missing).
 
 Here we will combine and correct any missing entries with the methods discussed above.
 ```{r Dealing with the Unknown}
@@ -183,7 +184,7 @@ We can make many conclusions about this data set just from looking at the summar
 - The vast majority of identified perpetrators are male.
 - The victim's age are a little more equally distributed than the perp's but the vast majority are also between 18-44.
 
-Let's take a closer look and check the `DATE` distribution skewness by finding the midpoint date of the data set. (This is the exact middle date of this data set)
+Let's take a closer look and check the `DATE` distribution skewness by finding the midpoint date of the data set (this is the exact middle date of this data set).
 ```{r Date Midpoint}
 data_interval <- interval(min(import_url$DATE), max(import_url$DATE))
 int_start(data_interval) + (int_end(data_interval) - int_start(data_interval)) / 2
@@ -195,7 +196,7 @@ We will look further into this during visualizations.
 ## Visualizations
 
 Now that the transformations are complete, let's start plotting these features against each other and visualizing our data 
-so we can try to make some conclusions.
+so we can try to make some conclusions and more clearly inform them.
 
 Let's begin by visualizing the number of shooting incidents by the `BOROUGH` they occurred.
 ```{r, Visualizations - Incidents per Borough, fig.height = 4, fig.width = 6, fig.align = 'center'}
@@ -269,11 +270,11 @@ grid.arrange(month_plot, hour_plot, nrow = 1)
 ```
 
 - Like with other crimes, we see a higher amount during the warmer months.
-- Shootings are much more likely during the darker hours when the sun is down.
+- Shootings are much more likely during nighttime hours.
 - Shootings hit a maximum peak at 11:00 (23:00).
 - Incidents happen much less often in the morning when people are starting their day and commuting with a minimum at 7:00-9:59.
 
-Looking at these makes me ask the question, "have shootings becoming more or less frequent over the years?". 
+Looking at these makes me ask the question, "have shootings becoming more or less frequent over the years". 
 Let's find out what this data suggests the answer is next.
 
 ```{r, Incidents per Year, fig.height = 4, fig.width = 6, fig.align = 'center'}
@@ -344,7 +345,7 @@ ggplot(covid_months_totals_2, aes(x = DATE, y = n, fill = DATE)) +
 
 There certainly is some underlying correlation here, but from this data we can't say for sure what that is exactly. That said, this is
 an interesting result because the increase in shootings seems to correlate to the period of time where the pandemic lockdown in NYC
-would have been in affect for over a month and would have been begun to loosen.
+would have been in affect for over a month and the increase in shootings occurs when restrictions would have been begun to loosen.
 
 ### Incident Coordinate Data Visualized on a Map
 
@@ -411,9 +412,9 @@ much more than the previous borough plot.
 - Comparatively, the distribution of shootings in Queens is quite evenly spread, and mostly on the South side.
 - There are some hot spots that would not be obvious without the coordinate data, namely around the coasts.
 
-The point map does have limitations though. The more points that are plotted in an area lose some information when they overlap.
+The point map does have limitations though. There is a loss of information when many points overlap.
 It's hard to compare the higher density areas to one another (e.g. we know from the previous graph that Brooklyn has >2000 more incidents
-than The Bronx, but here you really can't parse that out.).
+than The Bronx, but here you really can't parse that out).
 Let's try to convert this into a heat/density map to get a better picture of these higher density areas.
 ```{r Density Map Visualization}
 # Initialize density map to better visualize regions with frequent incidents.
@@ -448,7 +449,7 @@ Even features that initially seemed sparse, considering the number of missing en
 Some takeaways we've seen from above:
 
 1. While the overall trend in number of shooting incidents was going down year after year from 2006 to the beginning of 2020, 
-they saw a large increase from right after the Covid Pandemic began. 
+they saw a large increase from right after the Covid pandemic began. 
 2. Majority of shootings in the dataset occur in Brooklyn, The Bronx, and near public and private housing.
 3. Even in low incident areas there are identifiable hotspots that most shootings occur (e.g. Staten Island, though low on the totals scale, shows ~5 localized clusters of incidents).
 4. While women make up ~8.18% of the victims in the cases where the sex was known, they only make up ~2.03% of the perpetrators where the sex was known.
@@ -457,10 +458,11 @@ they saw a large increase from right after the Covid Pandemic began.
 ### Bias
 
 Much of the bias of this analysis comes from choosing what features to include or not and possibly what conclusions can be drawn.
-My experience with living in a metropolitan city or past experiences with police officers could also affect the lens I view this information.
+My experiences while living in two different metropolitan cities for half my life or my past experiences with police officers could also affect the lens I view this information.
+Also, ever the optimist I assumed shootings would have seen a reduction during the pandemic, but seeing the data now I can see another story.
 In an attempt to mitigate these biases I've chosen to only include what I believe the data to empirically show, and not obfuscate any methods in obtaining these results.
 
 
 Another bias that is likely present here is how the data was collected, reviewed, and updated. We don't know the exact method in this case, and it is likely
-working off of hundreds of police officer's efforts over the years who went about their work with their own biases. These are all things to keep in mind when
-working with these datasets and drawing conclusions from them. Hopefully I've made the conclusions I made here reproducible and clear.
+working off of hundreds of police officers' efforts over the years who went about their work with their own biases. These are all things to keep in mind when
+working with these datasets and drawing conclusions from them. Hopefully I've made the conclusions made here reproducible and clear.
