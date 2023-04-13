@@ -299,6 +299,7 @@ year_plot
 Let's take a closer look at 2020 and 2021 but include the months to see if the pandemic had any noticeable influence.
 We'll also include 2018-2021 for context.
 ```{r, Covid Years, fig.height = 4, fig.width = 6, fig.align = 'center'}
+options(dplyr.summarise.inform = FALSE)
 covid_slice <- import_url %>%
     filter(DATE > '2018-01-01') %>%
     mutate(MONTH = stamp('January', orders = '%B', quiet = TRUE)(DATE)) %>%
@@ -441,6 +442,30 @@ incident_map_density
 - Now it's much more obvious that Brooklyn exhibits more shooting incidents than The Bronx, denoted here by a more intense yellow/green.
 - Though the total amount in Manhattan is lower than Queens, you can see it's much more concentrated to one area in Manhattan.
 - The masking of the lower density areas highlights some areas we may have overlooked on the scatter plot.
+
+## Model
+
+We will now build a model that will try to predict whether a murder will occur depending on the total number of shootings
+that occur on that day, as well as taking into account the day of the week. This will also require us to add a few more features.
+```{r Modeling}
+
+# Add DAY and YEAR features for easier parsing
+import_url$DAY <- factor(wday(import_url$DATE, label = TRUE, abbr = FALSE), ordered = FALSE)
+import_url$YEAR <- factor(year(import_url$DATE), ordered = FALSE)
+# Add TOTAL_TODAY which = the total number of incidents on a given DATE.
+import_url <- import_url %>%
+    group_by(DATE) %>%
+    mutate(TOTAL_TODAY = sum(duplicated(DATE)) + 1)
+# Model
+murder_model <- glm(MURDER_FLAG ~ TOTAL_TODAY - 1 + DAY, data = import_url, family = 'binomial'); murder_model
+plot(murder_model)
+model_summary <- summary(murder_model); model_summary
+```
+- We added 3 new features including `DAY`, `YEAR`, and `TOTAL_TODAY` which equals the total number of incidents on a given `DATE`.
+- Using `MURDER_FLAG` and the fact that it is binary (TRUE or FALSE) we used `glm()` and modeled a `binomial` predictor.
+
+Looking at the coefficient p-values etc, maybe a little unsurprisingly, there is a strong relation between day of the week, total shooting incidents per day,
+and whether or not a murder occurs, but it is worth confirming.
 
 ## Conclusion 
 
