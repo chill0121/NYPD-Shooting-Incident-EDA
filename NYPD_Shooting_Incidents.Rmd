@@ -491,3 +491,7 @@ In an attempt to mitigate these biases I've chosen to only include what I believ
 Another bias that is likely present here is how the data was collected, reviewed, and updated. We don't know the exact method in this case, and it is likely
 working off of hundreds of police officers' efforts over the years who went about their work with their own biases. These are all things to keep in mind when
 working with these datasets and drawing conclusions from them. Hopefully I've made the conclusions made here reproducible and clear.
+
+```{r Session Info}
+sessionInfo()
+```
