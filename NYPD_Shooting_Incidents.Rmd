@@ -191,14 +191,14 @@ int_start(data_interval) + (int_end(data_interval) - int_start(data_interval)) /
 median(import_url$DATE)
 ```
 Interesting, this proves there were more incidents in the first half of the time interval of the data set. 
-We will look further into this during visualizations.
+We will look into this further during visualizations.
 
 ## Visualizations
 
 Now that the transformations are complete, let's start plotting these features against each other and visualizing our data 
 so we can try to make some conclusions and more clearly inform them.
 
-Let's begin by visualizing the number of shooting incidents by the `BOROUGH` they occurred.
+Let's begin by visualizing the number of shooting incidents by the `BOROUGH` they occurred in.
 ```{r, Visualizations - Incidents per Borough, fig.height = 4, fig.width = 6, fig.align = 'center'}
 # Order factor levels of BOROUGH based on frequency
 import_url$BOROUGH <- fct_infreq(import_url$BOROUGH)
