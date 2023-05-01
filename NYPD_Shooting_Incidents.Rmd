@@ -12,6 +12,20 @@ output:
 Note, before using knitr please install all missing packages from the code cell below into your environment. Also, I recommended
 knitting into HTML as it has been optimized for viewing in that format.
 
+R Packages used:
+
+- library(tidyverse)
+- library(lubridate)
+- library(ggplot2)
+- library(ggmap)
+- library(gridExtra)
+
+Please use install.packages('...') to install any you may have missing.
+
+If you have trouble knitting due to issues installing these packages you can view the knitted version by:
+
+From the repository >> NYPD_Shooting_Incidents.html >> Download(view raw) >> Right click anywhere >> Save As... >> Open
+
 ### Data Source Information
 
 This data was procured from <https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic> and will be updated annually at the source and any time this .rmd file is knit.
