@@ -385,10 +385,10 @@ superimpose our data on the map using the same coordinate system we generated.
 ```{r, Point Map Visualization, fig.height = 10, fig.width = 16, fig.align = 'center'}
 # Initialize the bounding box that will contain the map view edges
 map_bounds <- c(
-    left = min(import_url$LONGITUDE),
-    bottom = min(import_url$LATITUDE),
-    right = max(import_url$LONGITUDE),
-    top = max(import_url$LATITUDE))
+    left = min(import_url$LONGITUDE, na.rm = TRUE),
+    bottom = min(import_url$LATITUDE, na.rm = TRUE),
+    right = max(import_url$LONGITUDE, na.rm = TRUE),
+    top = max(import_url$LATITUDE, na.rm = TRUE))
 
 # Initialize the map of NYC using map_bounds
 # Note, there are better maps out there but most require a private google API key,
@@ -399,23 +399,25 @@ incident_map_point <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom 
             aes(x = LONGITUDE, y = LATITUDE),
             color = 'darkred',
             size = 0.25,
-            alpha = 0.5) +
+            alpha = 0.5,
+            na.rm = TRUE) +
     ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
     labs(x = 'Longitude', y = 'Latitude',
-    caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 
 incident_map_point_color <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoom = 11)) + 
 # Overlay each data point using LONG. and LAT.
     geom_point(data = import_url,
         aes(x = LONGITUDE, y = LATITUDE, color = BOROUGH),
         size = 0.25,
-        alpha = 0.5) +
+        alpha = 0.5,
+        na.rm = TRUE) +
     scale_color_brewer(palette = 'Set1', direction = 1, name = 'Borough') +
     theme(legend.position = 'bottom') +
     guides(color = guide_legend(override.aes = list(size = 5, alpha = 1))) +
     ggtitle('Point Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
     labs(x = 'Longitude', y = 'Latitude',
-    caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
+        caption = 'Source:<https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic>')
 # Display Point Map
 grid.arrange(incident_map_point, incident_map_point_color, ncol = 2)
 ```
@@ -439,12 +441,14 @@ incident_map_density <- ggmap(get_stamenmap(map_bounds, maptype = 'terrain', zoo
         aes(x = LONGITUDE, y = LATITUDE, fill = after_stat(level)),
         bins = 20,
         geom = 'polygon',
-        alpha = 0.8) +
+        alpha = 0.8,
+        na.rm = TRUE) +
     geom_density_2d(data = import_url,
         aes(x = LONGITUDE, y = LATITUDE),
         bins = 20,
         alpha = 0.2,
-        color = "white") +
+        color = "white",
+        na.rm = TRUE) +
     guides(fill = guide_legend(title = "Density")) +
     ggtitle('Density Plot of NYPD Shooting Incident Reporting 2006 - 2021') +
     labs(x = 'Longitude', y = 'Latitude',
